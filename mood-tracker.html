@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mood Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: #2a2a38;
+    --accent: #c8b4ff;
+    --accent2: #ff9eb5;
+    --accent3: #7efdd0;
+    --accent4: #ffd97d;
+    --text: #e8e6f0;
+    --text-muted: #7a7890;
+    --text-dim: #4a4860;
+    --mood1: #ff6b6b; /* terrible */
+    --mood2: #ff9f43; /* bad */
+    --mood3: #ffd97d; /* okay */
+    --mood4: #a8e6cf; /* good */
+    --mood5: #7efdd0; /* great */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(ellipse, rgba(200,180,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%;
+    right: -15%;
+    width: 50%;
+    height: 70%;
+    background: radial-gradient(ellipse, rgba(126,253,208,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .logo h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  /* Nav tabs */
+  .nav-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.4rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .nav-tab {
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-tab:hover { color: var(--text); background: var(--bg3); }
+
+  .nav-tab.active {
+    background: var(--bg3);
+    color: var(--accent);
+    border: 1px solid rgba(200,180,255,0.2);
+  }
+
+  /* Sections */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: rgba(200,180,255,0.3); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+    opacity: 0.6;
+  }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+  }
+
+  /* Chart section */
+  .chart-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-title {
+    font-size: 0.8rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  #moodChart {
+    width: 100%;
+    height: 200px;
+    position: relative;
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 160px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .chart-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .chart-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-height: 2px;
+    cursor: pointer;
+    opacity: 0.8;
+  }
+
+  .chart-bar:hover { opacity: 1; transform: scaleY(1.05); transform-origin: bottom; }
+
+  .chart-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* History table */
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-input {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-input:focus { border-color: var(--accent); }
+  .filter-input::placeholder { color: var(--text-dim); }
+
+  .filter-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Mood chip filter */
+  .mood-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mood-chip {
+    padding: 0.35rem 0.9rem;
+    border-radius: 100px;
+    border: 1px solid transparent;
+    background: var(--bg3);
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mood-chip:hover { color: var(--text); }
+  .mood-chip.active { border-color: var(--chip-color); color: var(--chip-color); background: rgba(255,255,255,0.04); }
+
+  /* Mood list */
+  .mood-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .mood-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    display: grid;
+    grid-template-columns: 80px 60px 1fr auto;
+    align-items: center;
+    gap: 1.2rem;
+    transition: all 0.15s;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mood-item:hover { border-color: rgba(200,180,255,0.2); background: var(--bg3); }
+
+  .mood-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .mood-score-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+
+  .mood-note {
+    font-size: 0.85rem;
+    color: var(--text);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mood-emoji {
+    font-size: 1.4rem;
+  }
+
+  /* Add Mood Form */
+  .add-form {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 600px;
+  }
+
+  .form-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 0.4rem;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .form-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.7rem;
+  }
+
+  /* Mood selector */
+  .mood-selector {
+    display: flex;
+    gap: 0.7rem;
+  }
+
+  .mood-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mood-option:hover { border-color: var(--mood-color); }
+  .mood-option.selected { border-color: var(--mood-color); background: rgba(255,255,255,0.04); box-shadow: 0 0 20px rgba(255,255,255,0.03); }
+
+  .mood-option .emoji { font-size: 1.6rem; }
+  .mood-option .label {
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .mood-option.selected .label { color: var(--mood-color); }
+
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem 2rem;
+    color: #0a0a0f;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(200,180,255,0.25); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .form-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 1rem;
+    line-height: 1.7;
+  }
+
+  /* Year calendar */
+  .year-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .year-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+  .year-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  .year-label {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .month-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .month-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  .day-header {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 2px 0;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    cursor: default;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .day-cell.has-mood {
+    cursor: pointer;
+  }
+
+  .day-cell.has-mood:hover { transform: scale(1.3); z-index: 10; }
+
+  .day-cell.empty { background: transparent; }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    gap: 0.8rem;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 12px;
+    padding: 1.2rem 1.6rem;
+    color: #ff6b6b;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.7;
+  }
+
+  .tooltip {
+    position: fixed;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.15s;
+    max-width: 200px;
+  }
+  .tooltip.visible { opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .calendar-grid { grid-template-columns: repeat(2, 1fr); }
+    .mood-item { grid-template-columns: 70px 50px 1fr; }
+    .mood-item .mood-emoji { display: none; }
+    .nav-tab { padding: 0.5rem 0.8rem; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="tooltip" class="tooltip"></div>
+
+<div class="app">
+  <header>
+    <div class="logo">
+      <h1>MOOD TRACKER</h1>
+      <span>theo dõi tâm trạng của bạn</span>
+    </div>
+    <div id="lastSync" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--text-dim);text-align:right;"></div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="switchTab('history')">📋 Lịch sử</button>
+    <button class="nav-tab" onclick="switchTab('calendar')">📅 Lịch năm</button>
+    <button class="nav-tab" onclick="switchTab('add')">✦ Thêm mood</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard" class="section active">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card" style="--accent-color: var(--accent)">
+        <div class="stat-label">Tổng entries</div>
+        <div class="stat-value" id="totalEntries">—</div>
+        <div class="stat-sub">ghi chép</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--accent3)">
+        <div class="stat-label">Avg mood</div>
+        <div class="stat-value" id="avgMood">—</div>
+        <div class="stat-sub">trên thang 5</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--accent2)">
+        <div class="stat-label">Best streak</div>
+        <div class="stat-value" id="bestStreak">—</div>
+        <div class="stat-sub">ngày liên tiếp mood ≥ 4</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--accent4)">
+        <div class="stat-label">Tháng này</div>
+        <div class="stat-value" id="thisMonth">—</div>
+        <div class="stat-sub" id="thisMonthSub">entries</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">Mood 30 ngày gần nhất</div>
+      <div id="moodChart"><div class="loading"><div class="spinner"></div> đang tải dữ liệu...</div></div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">Phân bổ tâm trạng</div>
+      <div id="moodDist"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tab-history" class="section">
+    <div class="filter-bar">
+      <span class="filter-label">Từ:</span>
+      <input type="date" class="filter-input" id="filterFrom">
+      <span class="filter-label">Đến:</span>
+      <input type="date" class="filter-input" id="filterTo">
+      <div class="mood-filters" id="moodFilters"></div>
+      <button class="mood-chip" onclick="clearFilters()" style="background:var(--bg);border-color:var(--border)">✕ Xóa lọc</button>
+    </div>
+    <div id="historyList"><div class="loading"><div class="spinner"></div> đang tải...</div></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div id="tab-calendar" class="section">
+    <div class="year-nav">
+      <button class="year-btn" onclick="changeYear(-1)">‹</button>
+      <div class="year-label" id="yearLabel">2024</div>
+      <button class="year-btn" onclick="changeYear(1)">›</button>
+    </div>
+    <div id="calendarGrid"><div class="loading"><div class="spinner"></div> đang tải...</div></div>
+  </div>
+
+  <!-- ADD -->
+  <div id="tab-add" class="section">
+    <div class="add-form">
+      <div class="form-title">Ghi lại tâm trạng</div>
+      <div class="form-sub">// how are you feeling today?</div>
+
+      <div class="form-group">
+        <label class="form-label">Ngày</label>
+        <input type="date" class="form-input" id="newDate">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tâm trạng</label>
+        <div class="mood-selector">
+          <div class="mood-option" style="--mood-color: var(--mood1)" onclick="selectMood(1)" data-mood="1">
+            <span class="emoji">😔</span><span class="label">Tệ</span>
+          </div>
+          <div class="mood-option" style="--mood-color: var(--mood2)" onclick="selectMood(2)" data-mood="2">
+            <span class="emoji">😕</span><span class="label">Không ổn</span>
+          </div>
+          <div class="mood-option" style="--mood-color: var(--mood3)" onclick="selectMood(3)" data-mood="3">
+            <span class="emoji">😐</span><span class="label">Bình thường</span>
+          </div>
+          <div class="mood-option" style="--mood-color: var(--mood4)" onclick="selectMood(4)" data-mood="4">
+            <span class="emoji">😊</span><span class="label">Ổn</span>
+          </div>
+          <div class="mood-option" style="--mood-color: var(--mood5)" onclick="selectMood(5)" data-mood="5">
+            <span class="emoji">😄</span><span class="label">Tuyệt!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ghi chú (tùy chọn)</label>
+        <textarea class="form-input" id="newNote" rows="3" placeholder="Hôm nay như thế nào..."></textarea>
+      </div>
+
+      <button class="btn-primary" onclick="addMood()">✦ Lưu tâm trạng</button>
+
+      <div class="form-note" id="addNote">
+        ⚠️ Hãy đổi SHEET_CSV_URL bên dưới thành link CSV của bạn.<br>
+        Để thêm dữ liệu, bạn cần tích hợp Google Apps Script hoặc thêm tay vào Google Sheets.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CẤU HÌNH — ĐỔI URL NÀY THÀNH LINK CSV CỦA BẠN
+// ============================================================
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzTMTEzPjR349OJchm48eWZjAbM9nvEydzNVAYEj4uM71TaWvK6iWnuDucyrcmi63eVFzR-gAv-KEt/pub?gid=0&single=true&output=csvhttps://docs.google.com/spreadsheets/d/e/2PACX-1vQzTMTEzPjR349OJchm48eWZjAbM9nvEydzNVAYEj4uM71TaWvK6iWnuDucyrcmi63eVFzR-gAv-KEt/pub?output=csvhttps://docs.google.com/spreadsheets/d/e/2PACX-1vQzTMTEzPjR349OJchm48eWZjAbM9nvEydzNVAYEj4uM71TaWvK6iWnuDucyrcmi63eVFzR-gAv-KEt/pub?output=csv';
+// ============================================================
+
+let allData = [];
+let currentYear = new Date().getFullYear();
+let selectedMood = null;
+let activeFilters = { from: null, to: null, moods: [] };
+
+const MOOD_META = {
+  1: { emoji: '😔', label: 'Tệ', color: '#ff6b6b' },
+  2: { emoji: '😕', label: 'Không ổn', color: '#ff9f43' },
+  3: { emoji: '😐', label: 'Bình thường', color: '#ffd97d' },
+  4: { emoji: '😊', label: 'Ổn', color: '#a8e6cf' },
+  5: { emoji: '😄', label: 'Tuyệt!', color: '#7efdd0' },
+};
+
+const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+                   'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+
+// ─── CSV Fetch ───────────────────────────────────────────────
+async function fetchData() {
+  try {
+    const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    parseCSV(text);
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) { showError('File trống hoặc chỉ có header.'); return; }
+
+  const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
+  // Detect columns: date, mood/score, note/ghi chú
+  const colDate  = findCol(header, ['date','ngày','day','ngay']);
+  const colMood  = findCol(header, ['mood','score','điểm','diem','tâm trạng','tam trang','rating']);
+  const colNote  = findCol(header, ['note','ghi chú','ghi chu','notes','comment']);
+
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCSVRow(lines[i]);
+    const dateRaw = colDate >= 0 ? row[colDate] : '';
+    const moodRaw = colMood >= 0 ? row[colMood] : '';
+    const noteRaw = colNote >= 0 ? row[colNote] : '';
+    if (!dateRaw || !moodRaw) continue;
+    const dateObj = parseDate(dateRaw.trim());
+    const moodVal = parseInt(moodRaw.trim());
+    if (!dateObj || isNaN(moodVal)) continue;
+    data.push({ date: dateObj, mood: Math.max(1, Math.min(5, moodVal)), note: noteRaw.trim() });
+  }
+
+  data.sort((a, b) => b.date - a.date);
+  allData = data;
+
+  document.getElementById('lastSync').innerHTML = 'Cập nhật lúc<br>' + new Date().toLocaleTimeString('vi-VN');
+
+  renderDashboard();
+  renderHistory();
+  renderCalendar();
+  buildMoodFilters();
+}
+
+function findCol(header, names) {
+  for (const n of names) {
+    const idx = header.findIndex(h => h.includes(n));
+    if (idx >= 0) return idx;
+  }
+  return 0; // default first col
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let cur = '';
+  let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseDate(s) {
+  // Try multiple formats: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, D/M/YYYY
+  let d;
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+    d = new Date(s);
+  } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [a, b, y] = s.split('/');
+    // assume DD/MM/YYYY for Vietnamese
+    d = new Date(`${y}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`);
+  } else {
+    d = new Date(s);
+  }
+  return isNaN(d) ? null : d;
+}
+
+function showError(msg) {
+  const errHTML = `<div class="error-msg">❌ Không tải được dữ liệu: ${msg}<br><br>
+  Hãy đảm bảo Google Sheets đã được <strong>publish to web</strong> (File → Share → Publish to web → CSV).<br><br>
+  Hoặc đổi <code>SHEET_CSV_URL</code> trong code thành link CSV đúng.</div>`;
+  document.getElementById('moodChart').innerHTML = errHTML;
+  document.getElementById('historyList').innerHTML = errHTML;
+  document.getElementById('calendarGrid').innerHTML = errHTML;
+}
+
+// ─── Dashboard ───────────────────────────────────────────────
+function renderDashboard() {
+  if (!allData.length) return;
+
+  document.getElementById('totalEntries').textContent = allData.length;
+
+  const avg = allData.reduce((s,d) => s+d.mood, 0) / allData.length;
+  document.getElementById('avgMood').textContent = avg.toFixed(1);
+
+  // Best streak (mood >= 4)
+  let streak = 0, best = 0, prev = null;
+  [...allData].reverse().forEach(d => {
+    if (d.mood >= 4) {
+      if (prev) {
+        const diff = (d.date - prev) / 86400000;
+        if (diff <= 1.5) streak++;
+        else streak = 1;
+      } else streak = 1;
+      if (streak > best) best = streak;
+    } else streak = 0;
+    prev = d.date;
+  });
+  document.getElementById('bestStreak').textContent = best;
+
+  // This month
+  const now = new Date();
+  const thisM = allData.filter(d => d.date.getFullYear() === now.getFullYear() && d.date.getMonth() === now.getMonth());
+  document.getElementById('thisMonth').textContent = thisM.length;
+  if (thisM.length > 0) {
+    const avgM = (thisM.reduce((s,d)=>s+d.mood,0)/thisM.length).toFixed(1);
+    document.getElementById('thisMonthSub').textContent = `avg ${avgM}`;
+  }
+
+  renderLineChart();
+  renderDistribution();
+}
+
+function renderLineChart() {
+  const recent = [...allData].reverse().slice(-30);
+  if (!recent.length) { document.getElementById('moodChart').innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:3rem;font-family:\'Space Mono\',monospace;font-size:0.75rem;">Chưa có dữ liệu</div>'; return; }
+
+  let bars = '<div class="chart-bars">';
+  recent.forEach(d => {
+    const h = (d.mood / 5) * 100;
+    const c = MOOD_META[d.mood].color;
+    const label = d.date.getDate() + '/' + (d.date.getMonth()+1);
+    bars += `<div class="chart-bar-wrap">
+      <div class="chart-bar" style="height:${h}%;background:${c};" 
+           onmousemove="showTip(event,'${MOOD_META[d.mood].emoji} ${d.mood}/5\\n${label}\\n${d.note||''}')"
+           onmouseleave="hideTip()"></div>
+    </div>`;
+  });
+  bars += '</div>';
+
+  // Date labels (every 5)
+  let labels = '<div style="display:flex;gap:3px;margin-top:6px;">';
+  recent.forEach((d, i) => {
+    const show = i === 0 || i === recent.length-1 || i % 7 === 0;
+    const label = show ? (d.date.getDate() + '/' + (d.date.getMonth()+1)) : '';
+    labels += `<div style="flex:1;font-family:'Space Mono',monospace;font-size:0.5rem;color:var(--text-dim);text-align:center;">${label}</div>`;
+  });
+  labels += '</div>';
+
+  document.getElementById('moodChart').innerHTML = bars + labels;
+}
+
+function renderDistribution() {
+  const counts = {1:0,2:0,3:0,4:0,5:0};
+  allData.forEach(d => counts[d.mood]++);
+  const total = allData.length;
+
+  let html = '<div style="display:flex;flex-direction:column;gap:0.7rem;">';
+  for (let i = 5; i >= 1; i--) {
+    const pct = total ? (counts[i]/total*100) : 0;
+    const m = MOOD_META[i];
+    html += `<div style="display:flex;align-items:center;gap:1rem;">
+      <span style="font-size:1.2rem;width:28px;text-align:center;">${m.emoji}</span>
+      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text-muted);width:80px;">${m.label}</div>
+      <div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${m.color};border-radius:4px;transition:width 0.6s ease;"></div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text-muted);width:50px;text-align:right;">${counts[i]} (${pct.toFixed(0)}%)</div>
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('moodDist').innerHTML = html;
+}
+
+// ─── History ─────────────────────────────────────────────────
+function buildMoodFilters() {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    const m = MOOD_META[i];
+    html += `<button class="mood-chip" style="--chip-color:${m.color}" onclick="toggleMoodFilter(${i},this)">${m.emoji} ${m.label}</button>`;
+  }
+  document.getElementById('moodFilters').innerHTML = html;
+}
+
+function toggleMoodFilter(mood, el) {
+  el.classList.toggle('active');
+  const idx = activeFilters.moods.indexOf(mood);
+  if (idx >= 0) activeFilters.moods.splice(idx, 1);
+  else activeFilters.moods.push(mood);
+  renderHistory();
+}
+
+function clearFilters() {
+  activeFilters = { from: null, to: null, moods: [] };
+  document.getElementById('filterFrom').value = '';
+  document.getElementById('filterTo').value = '';
+  document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
+  renderHistory();
+}
+
+function renderHistory() {
+  let data = [...allData];
+
+  const from = document.getElementById('filterFrom')?.value;
+  const to = document.getElementById('filterTo')?.value;
+
+  if (from) data = data.filter(d => d.date >= new Date(from));
+  if (to) data = data.filter(d => d.date <= new Date(to + 'T23:59:59'));
+  if (activeFilters.moods.length) data = data.filter(d => activeFilters.moods.includes(d.mood));
+
+  if (!data.length) {
+    document.getElementById('historyList').innerHTML = '<div style="color:var(--text-dim);font-family:\'Space Mono\',monospace;font-size:0.8rem;padding:2rem;">Không có kết quả.</div>';
+    return;
+  }
+
+  let html = '<div class="mood-list">';
+  data.forEach(d => {
+    const m = MOOD_META[d.mood];
+    const dateStr = d.date.toLocaleDateString('vi-VN', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
+    html += `<div class="mood-item">
+      <div class="mood-date">${dateStr}</div>
+      <div class="mood-score-badge" style="background:${m.color}22;color:${m.color};">${d.mood}</div>
+      <div class="mood-note">${d.note || '<span style="color:var(--text-dim);font-style:italic;">Không có ghi chú</span>'}</div>
+      <div class="mood-emoji">${m.emoji}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('historyList').innerHTML = html;
+}
+
+// ─── Calendar ────────────────────────────────────────────────
+function changeYear(delta) {
+  currentYear += delta;
+  document.getElementById('yearLabel').textContent = currentYear;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const moodByDate = {};
+  allData.forEach(d => {
+    const key = d.date.toISOString().slice(0,10);
+    moodByDate[key] = d;
+  });
+
+  let html = '<div class="calendar-grid">';
+  for (let m = 0; m < 12; m++) {
+    const firstDay = new Date(currentYear, m, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(currentYear, m+1, 0).getDate();
+    const startOffset = (firstDay + 6) % 7; // make Mon=0
+
+    html += `<div class="month-block">
+      <div class="month-name">${MONTHS_VI[m]}</div>
+      <div class="days-grid">`;
+
+    // Day headers
+    ['T2','T3','T4','T5','T6','T7','CN'].forEach(d => {
+      html += `<div class="day-header">${d}</div>`;
+    });
+
+    // Empty cells
+    for (let e = 0; e < startOffset; e++) {
+      html += '<div class="day-cell empty"></div>';
+    }
+
+    // Days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${currentYear}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const entry = moodByDate[dateKey];
+      if (entry) {
+        const mc = MOOD_META[entry.mood].color;
+        html += `<div class="day-cell has-mood" style="background:${mc};color:#0a0a0f;font-weight:700;"
+          onmousemove="showTip(event,'${MOOD_META[entry.mood].emoji} ${entry.mood}/5<br>${entry.note||''}','${dateKey}')"
+          onmouseleave="hideTip()">${day}</div>`;
+      } else {
+        html += `<div class="day-cell" style="background:var(--bg3);color:var(--text-dim);">${day}</div>`;
+      }
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  document.getElementById('calendarGrid').innerHTML = html;
+}
+
+// ─── Tab switching ────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+
+  if (tab === 'history') renderHistory();
+}
+
+// ─── Add mood ─────────────────────────────────────────────────
+function selectMood(val) {
+  selectedMood = val;
+  document.querySelectorAll('.mood-option').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.mood) === val);
+  });
+}
+
+function addMood() {
+  if (!selectedMood) { alert('Hãy chọn tâm trạng!'); return; }
+  const date = document.getElementById('newDate').value;
+  if (!date) { alert('Hãy chọn ngày!'); return; }
+  const note = document.getElementById('newNote').value;
+
+  document.getElementById('addNote').innerHTML = `✅ Đã ghi nhớ locally! Để lưu vào Google Sheets, bạn hộ thêm thủ công hoặc dùng Apps Script API.<br><br>
+  <strong>Ngày:</strong> ${date} | <strong>Mood:</strong> ${MOOD_META[selectedMood].emoji} ${selectedMood}/5<br>
+  <strong>Ghi chú:</strong> ${note || '(trống)'}`;
+}
+
+// ─── Tooltip ──────────────────────────────────────────────────
+const tip = document.getElementById('tooltip');
+function showTip(e, text) {
+  tip.innerHTML = text.replace(/\n/g,'<br>');
+  tip.style.left = (e.clientX + 12) + 'px';
+  tip.style.top = (e.clientY - 10) + 'px';
+  tip.classList.add('visible');
+}
+function hideTip() { tip.classList.remove('visible'); }
+
+// ─── Init ─────────────────────────────────────────────────────
+document.getElementById('newDate').value = new Date().toISOString().slice(0,10);
+document.getElementById('yearLabel').textContent = currentYear;
+
+// Filters
+document.getElementById('filterFrom').addEventListener('change', renderHistory);
+document.getElementById('filterTo').addEventListener('change', renderHistory);
+
+fetchData();
+// Auto refresh every 5 minutes
+setInterval(fetchData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
